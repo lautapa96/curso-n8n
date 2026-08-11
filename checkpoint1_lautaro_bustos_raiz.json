@@ -1,0 +1,256 @@
+{
+  "name": "checkpoint1_lautaro_bustos_raiz",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.chatInput }}",
+        "options": {
+          "systemMessage": "ROL:\nSos el Agente de Triaje de Soporte de primera línea. Tu función es recibir consultas de clientes, clasificar su urgencia y tipo, y registrar cada caso antes de derivarlo.\n\nÁMBITO:\nTrabajás exclusivamente con consultas de soporte técnico y atención al cliente. No respondés preguntas ajenas al producto ni das asesoramiento legal, médico o financiero.\n\nOBJETIVO:\n1. Identificar el motivo de la consulta (bug, duda de uso, reclamo, solicitud de reembolso).\n2. Clasificar la urgencia (Baja, Media, Alta, Crítica).\n3. Registrar el caso en la planilla de seguimiento usando la herramienta disponible.\n4. Responder al usuario con un mensaje claro indicando que su caso fue registrado y el tiempo estimado de respuesta.\n\nREGLAS Y ESCALAMIENTO:\n- No tenés permitido prometer reembolsos, descuentos ni resolver el problema técnico vos mismo.\n- No tenés permitido inventar información sobre el estado de un pedido o sistema si la herramienta no la provee.\n- Si la urgencia es Crítica o el usuario menciona pérdida de datos o de dinero, marcalo explícitamente como \"ESCALAR A HUMANO\" en el registro.\n- Mantené un tono profesional, directo y claro en todas tus respuestas.",
+          "maxIterations": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6bc0db68-d24f-401b-941c-25261d4182db",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "start-flow",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -304,
+        32
+      ],
+      "id": "3012a1fa-cb31-4174-9486-cf76faf71b77",
+      "name": "Webhook",
+      "webhookId": "642a2bbb-a34f-4bc5-a9f0-5cce95f488b8"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Usá esta herramienta para registrar cada consulta de soporte que recibís, sin excepción. Ejecutala inmediatamente después de clasificar la urgencia y el tipo de caso, antes de responder al usuario. Escribí una fila con: fecha, tipo de consulta, nivel de urgencia, resumen del problema y si requiere escalamiento humano. No uses esta herramienta para leer datos ni para consultas que no sean de soporte.",
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1LJ_JJOvOlpzGlaXX4yK0NkTtwzeAF37uIqZBnL7LUW0",
+          "mode": "list",
+          "cachedResultName": "Hoja de cálculo sin título",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LJ_JJOvOlpzGlaXX4yK0NkTtwzeAF37uIqZBnL7LUW0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1964772148,
+          "mode": "list",
+          "cachedResultName": "Registro_Soporte",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LJ_JJOvOlpzGlaXX4yK0NkTtwzeAF37uIqZBnL7LUW0/edit#gid=1964772148"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fecha": "={{ $now }}",
+            "tipo_consulta": "={{ $fromAI('tipo_consulta', `Tipo de consulta detectado: bug, duda de uso, reclamo o reembolso`, 'string') }}",
+            "urgencia": "={{ $fromAI('urgencia', 'Nivel de urgencia clasificado: Baja, Media, Alta o Crítica', 'string') }}",
+            "resumen": "={{ $fromAI('resumen', 'Resumen breve en una oración del problema del cliente', 'string') }}",
+            "escalar_humano": "={{ $fromAI('escalar_humano', 'true si la urgencia es Crítica o si menciona pérdida de datos/dinero, false en caso contrario', 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "urgencia",
+              "displayName": "urgencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resumen",
+              "displayName": "resumen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "escalar_humano",
+              "displayName": "escalar_humano",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        192,
+        272
+      ],
+      "id": "b9741f81-4acf-4587-8f04-834c97ba635e",
+      "name": "Append row in sheet in Google Sheets",
+      "credentials": {
+        "googleApi": {
+          "id": "DiuRvsS2R6AuKvDs",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "C0BP4PNQ739"
+        },
+        "text": "=📋 *Log de Observabilidad - Triaje de Soporte*  *Consulta del usuario:* {{ $('Webhook').item.json.body.chatInput }} *Respuesta del agente:* {{ $json.output }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        16
+      ],
+      "id": "0f74293c-01aa-4b8b-9388-644a6fdb748c",
+      "name": "Send a message",
+      "webhookId": "943974e0-0a70-4c39-8a81-8b87978214b2",
+      "credentials": {
+        "slackApi": {
+          "id": "J1Gco49piFwAWbSn",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "llama-3.3-70b-versatile",
+          "mode": "list",
+          "cachedResultName": "llama-3.3-70b-versatile"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -144,
+        208
+      ],
+      "id": "0b9cf5bf-c7ba-4c1f-93e7-3a4994adc8df",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "6Q4qhGLjjvJKkGP5",
+          "name": "OpenAI account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ffac82dd-fcca-4c34-85f1-d1cf841989b8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5ead66365991f35d0fc28c40516bb6765dec7dcacd629bbab583ecd409271ae9"
+  },
+  "nodeGroups": [],
+  "id": "PIrLHATKaeWUzoqW",
+  "tags": []
+}
