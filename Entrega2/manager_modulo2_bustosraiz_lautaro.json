@@ -1,0 +1,652 @@
+{
+  "name": "manager_modulo2_bustosraiz_lautaro",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "start-flow-m2",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -976,
+        224
+      ],
+      "id": "272b16a4-c92c-4764-b26f-117e4b597c30",
+      "name": "Webhook",
+      "webhookId": "manager-m2-webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.chatInput }}",
+        "options": {
+          "systemMessage": "ROL:\nSos el Router de Triaje del sistema Manager. Tu única función es CLASIFICAR la consulta del cliente, nunca resolverla vos mismo.\n\nTAXONOMÍA CERRADA (usá EXACTAMENTE una de estas categorías, en mayúsculas):\n- TECH_SUPPORT: bugs, errores técnicos, problemas de acceso.\n- BILLING: reclamos de pago, reembolsos, facturación.\n- ESCALATE_HUMAN: cualquier caso ambiguo, urgente al extremo, o que mencione pérdida de dinero/datos graves.\n\ntipo_consulta: DEBE ser EXACTAMENTE una de estas 4 palabras, sin variaciones: bug, duda de uso, reclamo, reembolso. NO inventes categorías nuevas. NO uses sinónimos.\n\nFORMATO DE SALIDA OBLIGATORIO:\nRespondé ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, con esta forma exacta:\n{\"categoria\": \"TECH_SUPPORT|BILLING|ESCALATE_HUMAN\", \"tipo_consulta\": \"bug|duda de uso|reclamo|reembolso\", \"urgencia\": \"Baja|Media|Alta|Crítica\", \"resumen\": \"resumen breve en una oración\",\"escalate_human\":\"true|false\"}\n\nREGLAS:\n- No agregues explicaciones antes ni después del JSON.\n- Si dudás entre dos categorías, elegí ESCALATE_HUMAN.",
+          "maxIterations": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -736,
+        224
+      ],
+      "id": "91b6c816-7794-4113-90b3-3e9cf9c7867d",
+      "name": "AI Agent Router"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "categoria",
+              "value": "={{ JSON.parse($json.output).categoria }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "tipo_consulta",
+              "value": "={{ ['bug','duda de uso','reclamo','reembolso'].includes(JSON.parse($json.output).tipo_consulta) ? JSON.parse($json.output).tipo_consulta : 'bug' }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "urgencia",
+              "value": "={{ JSON.parse($json.output).urgencia }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "resumen",
+              "value": "={{ JSON.parse($json.output).resumen }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "mensaje",
+              "value": "={{ $('Webhook').item.json.body.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "session_id",
+              "value": "={{ $execution.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -496,
+        224
+      ],
+      "id": "1218a6da-443b-41bc-8f9f-e3401b72fa57",
+      "name": "Parsear Clasificación"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c1",
+                    "leftValue": "={{ $json.categoria }}",
+                    "rightValue": "TECH_SUPPORT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TECH_SUPPORT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c2",
+                    "leftValue": "={{ $json.categoria }}",
+                    "rightValue": "BILLING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "BILLING"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "ESCALATE_HUMAN"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -256,
+        224
+      ],
+      "id": "7ae8f8dd-d04e-4ac2-9784-ef71ba6871f6",
+      "name": "Router de Intención"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "WshhvTiQTOHBksel",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/WshhvTiQTOHBksel"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mensaje": "={{ $json.mensaje }}",
+            "tipo_consulta": "={{ $json.tipo_consulta }}",
+            "urgencia": "={{ $json.urgencia }}",
+            "resumen": "={{ $json.resumen }}",
+            "session_id": "={{ $json.session_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "mensaje",
+              "displayName": "mensaje",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "urgencia",
+              "displayName": "urgencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "resumen",
+              "displayName": "resumen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": "={{ true }}"
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "4acc9467-2f58-4f10-8317-1c1e5d67bc7c",
+      "name": "Execute Workflow: Worker 1 (Registro)"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "C0BP4PNQ739"
+        },
+        "text": "=📋 *Log de Trazabilidad - Manager*\n\n*Worker invocado:* Worker 1 - Registro de Caso\n*Categoría:* {{ $('Worker 1').item.json.tipo_consulta }} | *Urgencia:* {{ $('Worker 1').item.json.urgencia }}\n*Resultado:* {{ $json.status === 'success' ? ($json.data.status_caso || 'ok') : 'ERROR: ' + $json.data.reason }}\n*Técnico asignado:* {{ $json.data.tecnico_asignado || 'N/A' }}\n*Session ID:* {{ $json.data.session_id }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        464,
+        0
+      ],
+      "id": "73263a4f-d5c2-4a7b-9535-24c18a79b165",
+      "name": "Log Worker 1",
+      "webhookId": "e8d4f181-feb8-4fe5-a7b8-115c001a5989",
+      "credentials": {
+        "slackApi": {
+          "id": "J1Gco49piFwAWbSn",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "GAS0ICE2ZMlaL2Zz",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/GAS0ICE2ZMlaL2Zz"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mensaje": "={{ $json.mensaje }}",
+            "categoria": "={{ $json.categoria }}",
+            "session_id": "={{ $json.session_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "mensaje",
+              "displayName": "mensaje",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        272
+      ],
+      "id": "d12d4a80-a86e-49e3-a8ed-0e4ecf6af910",
+      "name": "Execute Workflow: Worker 2 (Redacción)"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "C0BP4PNQ739"
+        },
+        "text": "=📋 *Log de Trazabilidad - Manager*\n\n*Worker invocado:* Worker 2 - Redacción de Respuesta\n*Parámetros enviados:* {{ JSON.stringify($('Worker 2').item.json) }}\n*Respuesta recibida:* {{ JSON.stringify($json) }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        464,
+        272
+      ],
+      "id": "96dbbef0-10e4-4ae4-ac71-fc6e36cc89db",
+      "name": "Log Worker 2",
+      "webhookId": "bf1eed01-2cd8-40b6-8260-6adcc78fdac9",
+      "credentials": {
+        "slackApi": {
+          "id": "J1Gco49piFwAWbSn",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "C0BP4PNQ739"
+        },
+        "text": "=🚨 *ESCALAMIENTO A SUPERVISOR HUMANO*\n\nEl Router no pudo clasificar con confianza esta consulta (o es crítica):\n*Mensaje original:* {{ $json.mensaje }}\n*Resumen:* {{ $json.resumen }}\n*Urgencia:* {{ $json.urgencia }}\n\nRequiere atención manual inmediata.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        528
+      ],
+      "id": "119146e1-598d-4c08-a79d-f2b68e6fd90b",
+      "name": "Alerta a Supervisor Humano",
+      "webhookId": "1dc05555-92ad-4a52-b8e5-5aa173dc64b0",
+      "credentials": {
+        "slackApi": {
+          "id": "J1Gco49piFwAWbSn",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "qwen/qwen3.6-27b",
+          "mode": "list",
+          "cachedResultName": "qwen/qwen3.6-27b"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1024,
+        496
+      ],
+      "id": "15b0e16b-9462-4ae8-8bac-6254f6e7fe24",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "6Q4qhGLjjvJKkGP5",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        448
+      ],
+      "id": "665dd1d1-3029-4f86-86f0-2745756c9f89",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "uraRwRiG7K8V5hFb",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "mensaje",
+              "value": "={{ $json.mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "p2",
+              "name": "tipo_consulta",
+              "value": "={{ $json.tipo_consulta }}",
+              "type": "string"
+            },
+            {
+              "id": "p3",
+              "name": "urgencia",
+              "value": "={{ $json.urgencia }}",
+              "type": "string"
+            },
+            {
+              "id": "p4",
+              "name": "resumen",
+              "value": "={{ $json.resumen }}",
+              "type": "string"
+            },
+            {
+              "id": "p5",
+              "name": "session_id",
+              "value": "={{ $json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "d895df6b-0811-4d18-81b8-b1fb59959232",
+              "name": "escalate_human",
+              "value": "== {{ $json.escalate_human }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d9eee13f-3443-43a5-9e0e-da143dd7b0cd",
+      "name": "Worker 1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "mensaje",
+              "value": "={{ $json.mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "p2",
+              "name": "categoria",
+              "value": "={{ $json.categoria }}",
+              "type": "string"
+            },
+            {
+              "id": "p3",
+              "name": "session_id",
+              "value": "={{ $json.session_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        272
+      ],
+      "id": "62134e1a-b9d1-4695-9898-ea07909bc584",
+      "name": "Worker 2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Router": {
+      "main": [
+        [
+          {
+            "node": "Parsear Clasificación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Clasificación": {
+      "main": [
+        [
+          {
+            "node": "Router de Intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router de Intención": {
+      "main": [
+        [
+          {
+            "node": "Worker 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Worker 2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta a Supervisor Humano",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow: Worker 1 (Registro)": {
+      "main": [
+        [
+          {
+            "node": "Log Worker 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow: Worker 2 (Redacción)": {
+      "main": [
+        [
+          {
+            "node": "Log Worker 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Router",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worker 1": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow: Worker 1 (Registro)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worker 2": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow: Worker 2 (Redacción)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e37d3db7-4a5c-4e33-8a24-d425bcce4442",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5ead66365991f35d0fc28c40516bb6765dec7dcacd629bbab583ecd409271ae9"
+  },
+  "nodeGroups": [],
+  "id": "ZCO2SrVpxcSSnWgr",
+  "tags": []
+}

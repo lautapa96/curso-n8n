@@ -1,0 +1,719 @@
+{
+  "name": "worker1_modulo2_bustosraiz_lautaro_v5",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "mensaje"
+            },
+            {
+              "name": "tipo_consulta"
+            },
+            {
+              "name": "urgencia"
+            },
+            {
+              "name": "resumen"
+            },
+            {
+              "name": "session_id"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -960,
+        272
+      ],
+      "id": "b06ba312-64c8-4758-bcb9-55baf4620e37",
+      "name": "Execute Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, nombre, especialidad FROM tecnicos WHERE disponible = true AND especialidad ILIKE TRIM('{{ $json.tipo_consulta }}') ORDER BY id ASC LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -720,
+        272
+      ],
+      "id": "40641c7f-a2a1-4c31-a69e-289fee67313b",
+      "name": "Buscar Técnico Disponible",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "MM4b63F9a7p4rq9a",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-tech",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -480,
+        128
+      ],
+      "id": "fd889a2f-be74-4eee-a2bc-a985f1affa03",
+      "name": "¿Hay técnico disponible?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE tecnicos SET disponible = false, asignado_a_session = '{{ $(\"Execute Workflow Trigger\").item.json.session_id }}' WHERE id = {{ $json.id }} RETURNING id, nombre;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -240,
+        48
+      ],
+      "id": "edc98e85-a5d5-4982-a947-3ddfe8b2d698",
+      "name": "Asignar Técnico",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "MM4b63F9a7p4rq9a",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "mensaje",
+              "value": "={{ $('Execute Workflow Trigger').item.json.mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "b2",
+              "name": "tipo_consulta",
+              "value": "={{ $('Execute Workflow Trigger').item.json.tipo_consulta }}",
+              "type": "string"
+            },
+            {
+              "id": "b3",
+              "name": "urgencia",
+              "value": "={{ $('Execute Workflow Trigger').item.json.urgencia }}",
+              "type": "string"
+            },
+            {
+              "id": "b4",
+              "name": "resumen",
+              "value": "={{ $('Execute Workflow Trigger').item.json.resumen }}",
+              "type": "string"
+            },
+            {
+              "id": "b5",
+              "name": "session_id",
+              "value": "={{ $('Execute Workflow Trigger').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "s1",
+              "name": "status",
+              "value": "asignado",
+              "type": "string"
+            },
+            {
+              "id": "s2",
+              "name": "tecnico_asignado",
+              "value": "={{ $json.nombre }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c3d8ca64-3f32-40e2-bcd3-dc823966195b",
+      "name": "Preparar Registro (asignado)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "mensaje",
+              "value": "={{ $('Execute Workflow Trigger').item.json.mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "b2",
+              "name": "tipo_consulta",
+              "value": "={{ $('Execute Workflow Trigger').item.json.tipo_consulta }}",
+              "type": "string"
+            },
+            {
+              "id": "b3",
+              "name": "urgencia",
+              "value": "={{ $('Execute Workflow Trigger').item.json.urgencia }}",
+              "type": "string"
+            },
+            {
+              "id": "b4",
+              "name": "resumen",
+              "value": "={{ $('Execute Workflow Trigger').item.json.resumen }}",
+              "type": "string"
+            },
+            {
+              "id": "b5",
+              "name": "session_id",
+              "value": "={{ $('Execute Workflow Trigger').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "s1",
+              "name": "status",
+              "value": "error_asignacion",
+              "type": "string"
+            },
+            {
+              "id": "s2",
+              "name": "tecnico_asignado",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "s3",
+              "name": "reason",
+              "value": "No se pudo asignar el técnico encontrado (falló el UPDATE en Postgres)",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        128
+      ],
+      "id": "5ba4bfcd-7fe9-4655-9f2f-9f3cfcf1a3f8",
+      "name": "Preparar Registro (error asignación)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "mensaje",
+              "value": "={{ $('Execute Workflow Trigger').item.json.mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "b2",
+              "name": "tipo_consulta",
+              "value": "={{ $('Execute Workflow Trigger').item.json.tipo_consulta }}",
+              "type": "string"
+            },
+            {
+              "id": "b3",
+              "name": "urgencia",
+              "value": "={{ $('Execute Workflow Trigger').item.json.urgencia }}",
+              "type": "string"
+            },
+            {
+              "id": "b4",
+              "name": "resumen",
+              "value": "={{ $('Execute Workflow Trigger').item.json.resumen }}",
+              "type": "string"
+            },
+            {
+              "id": "b5",
+              "name": "session_id",
+              "value": "={{ $('Execute Workflow Trigger').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "s1",
+              "name": "status",
+              "value": "sin_tecnico",
+              "type": "string"
+            },
+            {
+              "id": "s2",
+              "name": "tecnico_asignado",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        352
+      ],
+      "id": "28ea98ec-1824-4b8c-ba74-7a325c59819a",
+      "name": "Preparar Registro (sin técnico)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "mensaje",
+              "value": "={{ $('Execute Workflow Trigger').item.json.mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "b2",
+              "name": "tipo_consulta",
+              "value": "={{ $('Execute Workflow Trigger').item.json.tipo_consulta }}",
+              "type": "string"
+            },
+            {
+              "id": "b3",
+              "name": "urgencia",
+              "value": "={{ $('Execute Workflow Trigger').item.json.urgencia }}",
+              "type": "string"
+            },
+            {
+              "id": "b4",
+              "name": "resumen",
+              "value": "={{ $('Execute Workflow Trigger').item.json.resumen }}",
+              "type": "string"
+            },
+            {
+              "id": "b5",
+              "name": "session_id",
+              "value": "={{ $('Execute Workflow Trigger').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "s1",
+              "name": "status",
+              "value": "error_busqueda",
+              "type": "string"
+            },
+            {
+              "id": "s2",
+              "name": "tecnico_asignado",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "s3",
+              "name": "reason",
+              "value": "No se pudo consultar la tabla de técnicos en Postgres",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        560
+      ],
+      "id": "542f3b65-b493-434d-8558-ee99b68946d3",
+      "name": "Preparar Registro (error búsqueda)"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "12cGFfsqStWOn_Q8WVj77VL19LyxKEsa1Lf8nJgVNjIg",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "466343369",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fecha": "={{ $now }}",
+            "tipo_consulta": "={{ $json.tipo_consulta }}",
+            "urgencia": "={{ $json.urgencia }}",
+            "resumen": "={{ $json.resumen }}",
+            "escalar_humano": "={{ $json.urgencia === 'Crítica' ? 'true' : 'false' }}",
+            "status": "={{ $json.status }}",
+            "tecnico_asignado": "={{ $json.tecnico_asignado }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "urgencia",
+              "displayName": "urgencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resumen",
+              "displayName": "resumen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "escalar_humano",
+              "displayName": "escalar_humano",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tecnico_asignado",
+              "displayName": "tecnico_asignado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        272,
+        80
+      ],
+      "id": "8280ee2f-306c-4901-a0e4-9a71e721c98b",
+      "name": "Google Sheets - Registrar Caso",
+      "credentials": {
+        "googleApi": {
+          "id": "DiuRvsS2R6AuKvDs",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "f2",
+              "name": "data",
+              "value": "={{ { session_id: $('Execute Workflow Trigger').item.json.session_id, row_appended: true, fecha: $now, status_caso: $('Google Sheets - Registrar Caso').item.json.status, tecnico_asignado: $('Google Sheets - Registrar Caso').item.json.tecnico_asignado } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        608,
+        64
+      ],
+      "id": "dae02183-c8e1-48da-8cef-f66b26b8b117",
+      "name": "Contrato de Salida (éxito)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "e2",
+              "name": "data",
+              "value": "={{ { session_id: $('Execute Workflow Trigger').item.json.session_id, reason: 'No se pudo registrar el caso en Google Sheets' } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        608,
+        304
+      ],
+      "id": "abe238ad-fc81-4db5-b6aa-7a4ef76caabc",
+      "name": "Contrato de Salida (fallo)"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "C0BP4PNQ739"
+        },
+        "text": "=🚨 *Error en Worker 1 - Registro de Caso*\n\n*Status:* {{ $json.status || 'error_desconocido' }}\n*Session ID:* {{ $json.session_id || $('Execute Workflow Trigger').item.json.session_id }}\n*Detalle:* {{ $json.reason || 'Falló el registro en Google Sheets (revisar credenciales/permisos)' }}\n*Mensaje original:* {{ $('Execute Workflow Trigger').item.json.mensaje }}\n*Tipo de consulta:* {{ $('Execute Workflow Trigger').item.json.tipo_consulta }} | *Urgencia:* {{ $('Execute Workflow Trigger').item.json.urgencia }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        592,
+        592
+      ],
+      "id": "4fa91024-dbb4-46c2-82cb-803aa8a8f7d0",
+      "name": "Alertar Error a Slack",
+      "webhookId": "60a1734c-774b-4883-8561-6880d4d4aa10",
+      "credentials": {
+        "slackApi": {
+          "id": "J1Gco49piFwAWbSn",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Buscar Técnico Disponible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Técnico Disponible": {
+      "main": [
+        [
+          {
+            "node": "¿Hay técnico disponible?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Registro (error búsqueda)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay técnico disponible?": {
+      "main": [
+        [
+          {
+            "node": "Asignar Técnico",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Registro (sin técnico)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asignar Técnico": {
+      "main": [
+        [
+          {
+            "node": "Preparar Registro (asignado)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Registro (error asignación)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Registro (asignado)": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Registrar Caso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Registro (error asignación)": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Registrar Caso",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Alertar Error a Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Registro (sin técnico)": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Registrar Caso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Registro (error búsqueda)": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Registrar Caso",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Alertar Error a Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Registrar Caso": {
+      "main": [
+        [
+          {
+            "node": "Contrato de Salida (éxito)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contrato de Salida (fallo)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Alertar Error a Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "226ec00c-cf62-4dd4-a38f-1e2e7f4a7874",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5ead66365991f35d0fc28c40516bb6765dec7dcacd629bbab583ecd409271ae9"
+  },
+  "nodeGroups": [],
+  "id": "WshhvTiQTOHBksel",
+  "tags": []
+}
