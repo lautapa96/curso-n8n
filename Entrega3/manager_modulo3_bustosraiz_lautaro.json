@@ -1,0 +1,1595 @@
+{
+  "name": "manager_modulo3_bustosraiz_lautaro",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "start-flow-m3",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1920,
+        512
+      ],
+      "id": "a73b9963-04cc-4578-8f82-2bbad9dbedb8",
+      "name": "Webhook",
+      "webhookId": "manager-m2-webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "ROL:\nSos el Router de Triaje del sistema Manager. Tu única función es CLASIFICAR la consulta del cliente, nunca resolverla vos mismo.\n\nTAXONOMÍA CERRADA (usá EXACTAMENTE una de estas categorías, en mayúsculas):\n- TECH_SUPPORT: bugs, errores técnicos, problemas de acceso.\n- BILLING: reclamos de pago, reembolsos, facturación.\n- ESCALATE_HUMAN: cualquier caso ambiguo, urgente al extremo, o que mencione pérdida de dinero/datos graves.\n\nFORMATO DE SALIDA OBLIGATORIO:\nRespondé ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown:\n{\"categoria\": \"TECH_SUPPORT|BILLING|ESCALATE_HUMAN\", \"tipo_consulta\": \"bug|duda de uso|reclamo|reembolso\", \"urgencia\": \"Baja|Media|Alta|Crítica\", \"resumen\": \"resumen breve en una oración\"}\n\nREGLAS:\n- No agregues explicaciones antes ni después del JSON.\n- Si dudás entre dos categorías, elegí ESCALATE_HUMAN.\n\n[INICIO DE CONTEXTO COMPARTIDO]\n{{ $json.contexto_previo ? 'Contexto de sesión previa del usuario: ' + $json.contexto_previo : 'Usuario nuevo, sin historial previo.' }}\n{{ $json.estado_previo ? 'Estado anterior del caso: ' + $json.estado_previo : '' }}\n[FIN DEL CONTEXTO COMPARTIDO]",
+          "maxIterations": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1680,
+        512
+      ],
+      "id": "a23aebc0-85b3-4200-87a1-a92ff7ca970d",
+      "name": "AI Agent Router"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "categoria",
+              "value": "={{ JSON.parse($json.output).categoria }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "tipo_consulta",
+              "value": "={{ ['bug','duda de uso','reclamo','reembolso'].includes(JSON.parse($json.output).tipo_consulta) ? JSON.parse($json.output).tipo_consulta : 'bug' }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "urgencia",
+              "value": "={{ JSON.parse($json.output).urgencia }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "resumen",
+              "value": "={{ JSON.parse($json.output).resumen }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "mensaje",
+              "value": "={{ $('Webhook').item.json.body.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "session_id",
+              "value": "={{ $('Webhook').item.json.body.session_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1440,
+        512
+      ],
+      "id": "6a754d68-e2fe-40f1-a883-db8c427ebdf4",
+      "name": "Parsear Clasificación"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c1",
+                    "leftValue": "={{ $json.categoria }}",
+                    "rightValue": "TECH_SUPPORT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TECH_SUPPORT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c2",
+                    "leftValue": "={{ $json.categoria }}",
+                    "rightValue": "BILLING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "BILLING"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "ESCALATE_HUMAN"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1200,
+        512
+      ],
+      "id": "96025633-4ba3-48d8-ae9f-d45804e6b194",
+      "name": "Router de Intención"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "bnzNDhEl7VIs6NuL",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/bnzNDhEl7VIs6NuL"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mensaje": "={{ $json.mensaje }}",
+            "tipo_consulta": "={{ $json.tipo_consulta }}",
+            "urgencia": "={{ $json.urgencia }}",
+            "resumen": "={{ $json.resumen }}",
+            "session_id": "={{ $json.session_id }}",
+            "tecnico_asignado_previo": "={{ $json.tecnico_asignado_previo }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "mensaje",
+              "displayName": "mensaje",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "urgencia",
+              "displayName": "urgencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "resumen",
+              "displayName": "resumen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tecnico_asignado_previo",
+              "displayName": "tecnico_asignado_previo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": "={{ true }}"
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -720,
+        288
+      ],
+      "id": "5dfcfc4d-d6bb-4791-a0da-0fb660461815",
+      "name": "Execute Workflow: Worker 1 (Registro)"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "C0BP4PNQ739"
+        },
+        "text": "=📋 *Log de Trazabilidad - Manager*\n\n*Worker invocado:* Worker 1 - Registro de Caso\n*Categoría:* {{ $('Worker 1').item.json.tipo_consulta }} | *Urgencia:* {{ $('Worker 1').item.json.urgencia }}\n*Resultado:* {{ $json.status === 'success' ? ($json.data.status_caso || 'ok') : 'ERROR: ' + $json.data.reason }}\n*Técnico asignado:* {{ $json.data.tecnico_asignado || 'N/A' }}\n*Session ID:* {{ $json.data.session_id }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        -480,
+        288
+      ],
+      "id": "db989b8d-439c-4ed3-a4a5-ef86068a3a43",
+      "name": "Log Worker 1",
+      "webhookId": "e8d4f181-feb8-4fe5-a7b8-115c001a5989",
+      "credentials": {
+        "slackApi": {
+          "id": "J1Gco49piFwAWbSn",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "GAS0ICE2ZMlaL2Zz",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/GAS0ICE2ZMlaL2Zz"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mensaje": "={{ $json.mensaje }}",
+            "categoria": "={{ $json.categoria }}",
+            "session_id": "={{ $json.session_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "mensaje",
+              "displayName": "mensaje",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -720,
+        560
+      ],
+      "id": "b11c3b90-8d62-4fcb-865a-388b314b3454",
+      "name": "Execute Workflow: Worker 2 (Redacción)"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "C0BP4PNQ739"
+        },
+        "text": "=📋 *Log de Trazabilidad - Manager*\n\n*Worker invocado:* Worker 2 - Redacción de Respuesta\n*Parámetros enviados:* {{ JSON.stringify($('Worker 2').item.json) }}\n*Respuesta recibida:* {{ JSON.stringify($json) }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        -480,
+        560
+      ],
+      "id": "9f9e6add-4ff7-4ac7-8e97-5dab2f5f1620",
+      "name": "Log Worker 2",
+      "webhookId": "bf1eed01-2cd8-40b6-8260-6adcc78fdac9",
+      "credentials": {
+        "slackApi": {
+          "id": "J1Gco49piFwAWbSn",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "C0BP4PNQ739"
+        },
+        "text": "=🚨 *ESCALAMIENTO A SUPERVISOR HUMANO*\n\nEl Router no pudo clasificar con confianza esta consulta (o es crítica):\n*Mensaje original:* {{ $json.mensaje }}\n*Resumen:* {{ $json.resumen }}\n*Urgencia:* {{ $json.urgencia }}\n\nRequiere atención manual inmediata.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        -944,
+        816
+      ],
+      "id": "c2c4d616-5478-4bf8-809e-ddb247677840",
+      "name": "Alerta a Supervisor Humano",
+      "webhookId": "1dc05555-92ad-4a52-b8e5-5aa173dc64b0",
+      "credentials": {
+        "slackApi": {
+          "id": "J1Gco49piFwAWbSn",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "qwen/qwen3.6-27b",
+          "mode": "list",
+          "cachedResultName": "qwen/qwen3.6-27b"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1968,
+        784
+      ],
+      "id": "8059cdb3-89a6-46f8-893f-e98aae1ec70d",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "6Q4qhGLjjvJKkGP5",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -1680,
+        736
+      ],
+      "id": "4ebd5104-1faa-4983-8a64-5f55bb2fcf99",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "uraRwRiG7K8V5hFb",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "mensaje",
+              "value": "={{ $json.mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "p2",
+              "name": "tipo_consulta",
+              "value": "={{ $json.tipo_consulta }}",
+              "type": "string"
+            },
+            {
+              "id": "p3",
+              "name": "urgencia",
+              "value": "={{ $json.urgencia }}",
+              "type": "string"
+            },
+            {
+              "id": "p4",
+              "name": "resumen",
+              "value": "={{ $json.resumen }}",
+              "type": "string"
+            },
+            {
+              "id": "p5",
+              "name": "session_id",
+              "value": "={{ $json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "ae681d2f-b91f-43d4-884d-26ed9fd2326e",
+              "name": "tecnico_asignado_previo",
+              "value": "={{ $('Leer Memoria Airtable').item.json.Tecnico_Asignado || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -944,
+        288
+      ],
+      "id": "09ff5f2e-6352-43c4-b752-9cd90bb35eb7",
+      "name": "Worker 1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "mensaje",
+              "value": "={{ $json.mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "p2",
+              "name": "categoria",
+              "value": "={{ $json.categoria }}",
+              "type": "string"
+            },
+            {
+              "id": "p3",
+              "name": "session_id",
+              "value": "={{ $json.session_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -944,
+        560
+      ],
+      "id": "4a810bad-3fca-4a71-9d47-5ba056c72e05",
+      "name": "Worker 2"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appWZujidBTse0PV6",
+          "mode": "list",
+          "cachedResultName": "Triaje_Soporte_Memoria",
+          "cachedResultUrl": "https://airtable.com/appWZujidBTse0PV6"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblmV0j4C9gGiCG1s",
+          "mode": "list",
+          "cachedResultName": "Memoria_Agente",
+          "cachedResultUrl": "https://airtable.com/appWZujidBTse0PV6/tblmV0j4C9gGiCG1s"
+        },
+        "filterByFormula": "={Session_ID}='{{ $json.body.session_id }}'",
+        "returnAll": false,
+        "options": {
+          "fields": "={{ [\"Session_ID\",\"Resumen_Consolidado\",\"Estado_Caso\",\"Datos_Clave\",\"Mensaje_Count\",\"Tecnico_Asignado\"] }}"
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -1920,
+        208
+      ],
+      "id": "481e6698-cdf2-48de-af5a-09a520f7374b",
+      "name": "Leer Memoria Airtable",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "mcN4wZZFXZj1ACW7",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cm1",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1696,
+        208
+      ],
+      "id": "5f35a933-82e2-4d41-a2c1-194c09de5e15",
+      "name": "¿Tiene historial previo?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "chatInput",
+              "value": "={{ $('Webhook').item.json.body.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "session_id",
+              "value": "={{ $('Webhook').item.json.body.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "tiene_memoria",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "c4",
+              "name": "mensaje_count",
+              "value": "={{ ($('Leer Memoria Airtable').item.json.Mensaje_Count || 0) + 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "c5",
+              "name": "airtable_record_id",
+              "value": "={{ $('Leer Memoria Airtable').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "c6",
+              "name": "contexto_previo",
+              "value": "={{ $('Leer Memoria Airtable').item.json.Resumen_Consolidado || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "c7",
+              "name": "estado_previo",
+              "value": "={{ $('Leer Memoria Airtable').item.json.Estado_Caso || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1376,
+        48
+      ],
+      "id": "b47a51bc-fa85-4ca1-8306-371fb97d0e9f",
+      "name": "Set Contexto (recurrente)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "n1",
+              "name": "chatInput",
+              "value": "={{ $('Webhook').item.json.body.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "n2",
+              "name": "session_id",
+              "value": "={{ $('Webhook').item.json.body.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "n3",
+              "name": "tiene_memoria",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "n4",
+              "name": "mensaje_count",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "n5",
+              "name": "airtable_record_id",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "n6",
+              "name": "contexto_previo",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "n7",
+              "name": "estado_previo",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1488,
+        320
+      ],
+      "id": "43450a9f-b00f-40dd-8a96-ffd4c56b1344",
+      "name": "Set Contexto (nuevo)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cs1",
+              "leftValue": "={{ $json.mensaje_count }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        624
+      ],
+      "id": "8d4fa32f-6e3b-41a0-b2e9-f261e38bfa38",
+      "name": "¿Más de 5 mensajes?"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Consulta del usuario: ' + $json.chatInput + '\\n\\nContexto previo: ' + ($json.contexto_previo || 'Sin historial previo') + '\\n\\nTécnico asignado previamente: ' + ($json.tecnico_asignado_previo || 'Ninguno') }}",
+        "options": {
+          "systemMessage": "Sos un sistema de compresión de memoria para un agente de soporte. Respondé ÚNICAMENTE con un objeto JSON válido, sin texto adicional ni markdown, con este formato exacto:\n{\"asunto_principal\": \"descripción en una oración del problema central\", \"puntos_clave\": [\"punto 1\", \"punto 2\"], \"accion_requerida\": \"próximo paso concreto\", \"estado\": \"abierto|cerrado|escalado\"}",
+          "maxIterations": 3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        64,
+        288
+      ],
+      "id": "8d9fbd63-3071-4b62-b034-9c8e48fc8605",
+      "name": "Summarization Agent"
+    },
+    {
+      "parameters": {
+        "model": "qwen2.5:7b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5ea913f8-4b81-4ad6-ac21-f5b00a2f5a04",
+      "name": "Ollama (summarization)",
+      "credentials": {
+        "ollamaApi": {
+          "id": "uraRwRiG7K8V5hFb",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appWZujidBTse0PV6",
+          "mode": "list",
+          "cachedResultName": "Triaje_Soporte_Memoria",
+          "cachedResultUrl": "https://airtable.com/appWZujidBTse0PV6"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblmV0j4C9gGiCG1s",
+          "mode": "list",
+          "cachedResultName": "Memoria_Agente",
+          "cachedResultUrl": "https://airtable.com/appWZujidBTse0PV6/tblmV0j4C9gGiCG1s"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Preservar Contexto (W1)').item.json.airtable_record_id || $('Preservar Contexto (W2)').item.json.airtable_record_id }}",
+            "Session_ID": "={{ $('Preservar Contexto (W1)').item.json.session_id || $('Preservar Contexto (W2)').item.json.session_id }}",
+            "Fecha_Actualizacion": "={{ $now }}",
+            "Resumen_Consolidado": "={{ $json.output }}",
+            "Estado_Caso": "={{ (() => { try { return JSON.parse($json.output).estado } catch(e) { return 'abierto' } })() }}",
+            "Datos_Clave": "={{ (() => { try { return JSON.stringify(JSON.parse($json.output).puntos_clave) } catch(e) { return $json.output } })() }}",
+            "Mensaje_Count": "={{ $('Preservar Contexto (W1)').item.json.mensaje_count || $('Preservar Contexto (W2)').item.json.mensaje_count }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Session_ID",
+              "displayName": "Session_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha_Actualizacion",
+              "displayName": "Fecha_Actualizacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Resumen_Consolidado",
+              "displayName": "Resumen_Consolidado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Estado_Caso",
+              "displayName": "Estado_Caso",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Datos_Clave",
+              "displayName": "Datos_Clave",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Mensaje_Count",
+              "displayName": "Mensaje_Count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        224
+      ],
+      "id": "e97d5604-d359-4e89-8469-a0aa6b94ebd4",
+      "name": "Airtable Update (resumen comprimido)",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "mcN4wZZFXZj1ACW7",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appWZujidBTse0PV6",
+          "mode": "list",
+          "cachedResultName": "Triaje_Soporte_Memoria",
+          "cachedResultUrl": "https://airtable.com/appWZujidBTse0PV6"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblmV0j4C9gGiCG1s",
+          "mode": "list",
+          "cachedResultName": "Memoria_Agente",
+          "cachedResultUrl": "https://airtable.com/appWZujidBTse0PV6/tblmV0j4C9gGiCG1s"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.airtable_record_id }}",
+            "Session_ID": "={{ $json.session_id }}",
+            "Fecha_Actualizacion": "={{ $now }}",
+            "Resumen_Consolidado": "=={{ $json.chatInput }}",
+            "Estado_Caso": "abierto",
+            "Datos_Clave": "={{ $json.chatInput }}",
+            "Mensaje_Count": "={{ $json.mensaje_count + 1}} "
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Session_ID",
+              "displayName": "Session_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha_Actualizacion",
+              "displayName": "Fecha_Actualizacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Resumen_Consolidado",
+              "displayName": "Resumen_Consolidado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Estado_Caso",
+              "displayName": "Estado_Caso",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Datos_Clave",
+              "displayName": "Datos_Clave",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Mensaje_Count",
+              "displayName": "Mensaje_Count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        544
+      ],
+      "id": "dca8e95d-1f69-46ad-b13c-9479a76cf6c3",
+      "name": "Airtable Update (resumen simple)",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "mcN4wZZFXZj1ACW7",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appWZujidBTse0PV6",
+          "mode": "list",
+          "cachedResultName": "Triaje_Soporte_Memoria",
+          "cachedResultUrl": "https://airtable.com/appWZujidBTse0PV6"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblmV0j4C9gGiCG1s",
+          "mode": "list",
+          "cachedResultName": "Memoria_Agente",
+          "cachedResultUrl": "https://airtable.com/appWZujidBTse0PV6/tblmV0j4C9gGiCG1s"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Session_ID": "={{ $json.session_id }}",
+            "Fecha_Actualizacion": "={{ $now }}",
+            "Resumen_Consolidado": "={{ $json.chatInput }}",
+            "Estado_Caso": "abierto",
+            "Datos_Clave": "={{ $json.chatInput }}",
+            "Mensaje_Count": "={{ $json.mensaje_count }} ",
+            "Tecnico_Asignado": "={{ $json.tecnico_asignado || '' }}"
+          },
+          "matchingColumns": [
+            "Session_ID"
+          ],
+          "schema": [
+            {
+              "id": "Session_ID",
+              "displayName": "Session_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fecha_Actualizacion",
+              "displayName": "Fecha_Actualizacion",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Resumen_Consolidado",
+              "displayName": "Resumen_Consolidado",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Estado_Caso",
+              "displayName": "Estado_Caso",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Datos_Clave",
+              "displayName": "Datos_Clave",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Mensaje_Count",
+              "displayName": "Mensaje_Count",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Tecnico_Asignado",
+              "displayName": "Tecnico_Asignado",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        912,
+        816
+      ],
+      "id": "8ebee4a8-7245-4568-9b15-833cf0e2ece9",
+      "name": "Airtable Create (nuevo registro)",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "mcN4wZZFXZj1ACW7",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ctx1",
+              "name": "airtable_record_id",
+              "value": "={{ $('Leer Memoria Airtable').item.json.id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ctx2",
+              "name": "session_id",
+              "value": "={{ $('Webhook').item.json.body.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "ctx3",
+              "name": "tiene_memoria",
+              "value": "={{ $('Leer Memoria Airtable').item.json.id ? true : false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "ctx4",
+              "name": "mensaje_count",
+              "value": "={{ ($('Leer Memoria Airtable').item.json.Mensaje_Count || 0) + 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "ctx5",
+              "name": "chatInput",
+              "value": "={{ $('Webhook').item.json.body.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "ctx6",
+              "name": "contexto_previo",
+              "value": "={{ $('Leer Memoria Airtable').item.json.Resumen_Consolidado || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ctx7",
+              "name": "tecnico_asignado_previo",
+              "value": "={{ $('Leer Memoria Airtable').item.json.Tecnico_Asignado || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "4652b310-0779-4909-a8a7-194576d0e58a",
+              "name": "tecnico_asignado",
+              "value": "={{ $('Execute Workflow: Worker 1 (Registro)').item.json.data?.tecnico_asignado || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        704,
+        0
+      ],
+      "id": "1c725455-8976-43ad-96b3-de378db055fe",
+      "name": "Preservar Contexto (W1)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ctx1",
+              "name": "airtable_record_id",
+              "value": "={{ $('Leer Memoria Airtable').item.json.id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ctx2",
+              "name": "session_id",
+              "value": "={{ $('Webhook').item.json.body.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "ctx3",
+              "name": "tiene_memoria",
+              "value": "={{ $('Leer Memoria Airtable').item.json.id ? true : false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "ctx4",
+              "name": "mensaje_count",
+              "value": "={{ ($('Leer Memoria Airtable').item.json.fields?.Mensaje_Count || 0) + 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "ctx5",
+              "name": "chatInput",
+              "value": "={{ $('Webhook').item.json.body.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "ctx6",
+              "name": "contexto_previo",
+              "value": "={{ $('Leer Memoria Airtable').item.json.fields?.Resumen_Consolidado || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ctx7",
+              "name": "tecnico_asignado_previo",
+              "value": "={{ $('Leer Memoria Airtable').item.json.fields?.Tecnico_Asignado || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        736,
+        368
+      ],
+      "id": "b07eea25-0062-481a-a70b-eaf1430ac8da",
+      "name": "Preservar Contexto (W2)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cs1",
+              "leftValue": "={{ $json.tiene_memoria }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        704
+      ],
+      "id": "8be3fa8a-77f6-49c7-89a7-bbf1b74141e2",
+      "name": "¿Es recurrente?"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Leer Memoria Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Router": {
+      "main": [
+        [
+          {
+            "node": "Parsear Clasificación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Clasificación": {
+      "main": [
+        [
+          {
+            "node": "Router de Intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router de Intención": {
+      "main": [
+        [
+          {
+            "node": "Worker 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Worker 2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta a Supervisor Humano",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow: Worker 1 (Registro)": {
+      "main": [
+        [
+          {
+            "node": "Log Worker 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow: Worker 2 (Redacción)": {
+      "main": [
+        [
+          {
+            "node": "Log Worker 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Router",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worker 1": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow: Worker 1 (Registro)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worker 2": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow: Worker 2 (Redacción)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Memoria Airtable": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene historial previo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene historial previo?": {
+      "main": [
+        [
+          {
+            "node": "Set Contexto (recurrente)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Contexto (nuevo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Contexto (recurrente)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Contexto (nuevo)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Worker 1": {
+      "main": [
+        [
+          {
+            "node": "Preservar Contexto (W1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Worker 2": {
+      "main": [
+        [
+          {
+            "node": "Preservar Contexto (W2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Más de 5 mensajes?": {
+      "main": [
+        [
+          {
+            "node": "Summarization Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Es recurrente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarization Agent": {
+      "main": [
+        [
+          {
+            "node": "Airtable Update (resumen comprimido)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama (summarization)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarization Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preservar Contexto (W1)": {
+      "main": [
+        [
+          {
+            "node": "¿Más de 5 mensajes?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preservar Contexto (W2)": {
+      "main": [
+        [
+          {
+            "node": "¿Más de 5 mensajes?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es recurrente?": {
+      "main": [
+        [
+          {
+            "node": "Airtable Update (resumen simple)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable Create (nuevo registro)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f1135525-7647-4cd7-906a-6821d1dbaeea",
+  "meta": {
+    "instanceId": "5ead66365991f35d0fc28c40516bb6765dec7dcacd629bbab583ecd409271ae9"
+  },
+  "nodeGroups": [],
+  "id": "g05RcKZnDywi1ewF",
+  "tags": []
+}

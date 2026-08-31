@@ -1,0 +1,120 @@
+{
+  "name": "worker2_modulo2_bustosraiz_lautaro",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "mensaje"
+            },
+            {
+              "name": "categoria"
+            },
+            {
+              "name": "session_id"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f879582f-33c5-43df-bc55-69bdd896a95a",
+      "name": "Execute Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "respuesta_sugerida",
+              "value": "={{ $json.categoria === 'BILLING' ? 'Hola, recibimos tu reclamo de facturación. Un especialista de billing va a revisar tu caso y te contacta en menos de 24hs.' : 'Hola, gracias por tu consulta. La estamos procesando y te contactamos a la brevedad.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        0
+      ],
+      "id": "ca34bf6b-bb27-4999-bb8d-b867cd929209",
+      "name": "Redactar Respuesta"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "s2",
+              "name": "data",
+              "value": "={{ { session_id: $('Execute Workflow Trigger').item.json.session_id, respuesta_sugerida: $json.respuesta_sugerida } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        0
+      ],
+      "id": "8071dae3-3668-48a0-9215-33f179065ae3",
+      "name": "Contrato de Salida (éxito)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Redactar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Contrato de Salida (éxito)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "0679dd71-631b-42c4-91c2-ea9910f99bbf",
+  "meta": {
+    "instanceId": "5ead66365991f35d0fc28c40516bb6765dec7dcacd629bbab583ecd409271ae9"
+  },
+  "nodeGroups": [],
+  "id": "GAS0ICE2ZMlaL2Zz",
+  "tags": []
+}
