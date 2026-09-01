@@ -1,0 +1,503 @@
+{
+  "name": "cerebro_clasificacion_bustosraiz_lautaro",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "chatInput"
+            },
+            {
+              "name": "session_id"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a6e607e7-8bef-4aae-a6dc-a03f8ce70d40",
+      "name": "Execute Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appWZujidBTse0PV6",
+          "mode": "list",
+          "cachedResultName": "Triaje_Soporte_Memoria",
+          "cachedResultUrl": "https://airtable.com/appWZujidBTse0PV6"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblmV0j4C9gGiCG1s",
+          "mode": "list",
+          "cachedResultName": "Memoria_Agente",
+          "cachedResultUrl": "https://airtable.com/appWZujidBTse0PV6/tblmV0j4C9gGiCG1s"
+        },
+        "filterByFormula": "={Session_ID}='{{ $json.session_id }}'",
+        "returnAll": false,
+        "options": {
+          "fields": "={{ [\"Session_ID\",\"Resumen_Consolidado\",\"Estado_Caso\",\"Datos_Clave\",\"Mensaje_Count\",\"Tecnico_Asignado\"] }}"
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        288,
+        0
+      ],
+      "id": "f0deaaa9-52ca-40ea-8053-0f782ab1b599",
+      "name": "Leer Memoria Airtable",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "mcN4wZZFXZj1ACW7",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cm1",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "11419cd7-7b05-4145-9c9e-1d0f69f29cff",
+      "name": "¿Tiene historial previo?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "chatInput",
+              "value": "={{ $('Execute Workflow Trigger').item.json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "session_id",
+              "value": "={{ $('Execute Workflow Trigger').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "tiene_memoria",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "c4",
+              "name": "mensaje_count",
+              "value": "={{ ($('Leer Memoria Airtable').item.json.Mensaje_Count || 0) + 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "c5",
+              "name": "airtable_record_id",
+              "value": "={{ $('Leer Memoria Airtable').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "c6",
+              "name": "contexto_previo",
+              "value": "={{ $('Leer Memoria Airtable').item.json.Resumen_Consolidado || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "c7",
+              "name": "estado_previo",
+              "value": "={{ $('Leer Memoria Airtable').item.json.Estado_Caso || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        0
+      ],
+      "id": "8fbd54f2-6dc3-4412-8fdf-5559b05dcc14",
+      "name": "Set Contexto (recurrente)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "n1",
+              "name": "chatInput",
+              "value": "={{ $('Execute Workflow Trigger').item.json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "n2",
+              "name": "session_id",
+              "value": "={{ $('Execute Workflow Trigger').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "n3",
+              "name": "tiene_memoria",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "n4",
+              "name": "mensaje_count",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "n5",
+              "name": "airtable_record_id",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "n6",
+              "name": "contexto_previo",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "n7",
+              "name": "estado_previo",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        176
+      ],
+      "id": "f087f841-32aa-42c0-b9c5-e79a7e706f72",
+      "name": "Set Contexto (nuevo)"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "ROL:\nSos el Router de Triaje del sistema Manager. Tu única función es CLASIFICAR la consulta del cliente, nunca resolverla vos mismo.\n\nTAXONOMÍA CERRADA (usá EXACTAMENTE una de estas categorías, en mayúsculas):\n- TECH_SUPPORT: bugs, errores técnicos, problemas de acceso.\n- BILLING: reclamos de pago, reembolsos, facturación.\n- ESCALATE_HUMAN: cualquier caso ambiguo, urgente al extremo, o que mencione pérdida de dinero/datos graves.\n\nFORMATO DE SALIDA OBLIGATORIO:\nRespondé ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown:\n{\"categoria\": \"TECH_SUPPORT|BILLING|ESCALATE_HUMAN\", \"tipo_consulta\": \"bug|duda de uso|reclamo|reembolso\", \"urgencia\": \"Baja|Media|Alta|Crítica\", \"resumen\": \"resumen breve en una oración\"}\n\nREGLAS:\n- No agregues explicaciones antes ni después del JSON.\n- Si dudás entre dos categorías, elegí ESCALATE_HUMAN.\n\n[INICIO DE CONTEXTO COMPARTIDO]\n{{ $json.contexto_previo ? 'Contexto de sesión previa del usuario: ' + $json.contexto_previo : 'Usuario nuevo, sin historial previo.' }}\n{{ $json.estado_previo ? 'Estado anterior del caso: ' + $json.estado_previo : '' }}\n[FIN DEL CONTEXTO COMPARTIDO]",
+          "maxIterations": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "5cd333f9-be91-4655-b801-7e0ac0b797e4",
+      "name": "AI Agent Router"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "qwen/qwen3.6-27b",
+          "mode": "list",
+          "cachedResultName": "qwen/qwen3.6-27b"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        176
+      ],
+      "id": "f1a98b83-7af2-4a42-bd9b-1f9b7b5d6025",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "6Q4qhGLjjvJKkGP5",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        144
+      ],
+      "id": "c13cb631-f337-42f7-82ce-097372e51d90",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "uraRwRiG7K8V5hFb",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "categoria",
+              "value": "={{ JSON.parse($json.output).categoria }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "tipo_consulta",
+              "value": "={{ ['bug','duda de uso','reclamo','reembolso'].includes(JSON.parse($json.output).tipo_consulta) ? JSON.parse($json.output).tipo_consulta : 'bug' }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "urgencia",
+              "value": "={{ JSON.parse($json.output).urgencia }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "resumen",
+              "value": "={{ JSON.parse($json.output).resumen }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "mensaje",
+              "value": "={{ $('Execute Workflow Trigger').item.json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "session_id",
+              "value": "={{ $('Execute Workflow Trigger').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "a7",
+              "name": "tecnico_asignado_previo",
+              "type": "string",
+              "value": "={{ $('Leer Memoria Airtable').item.json.Tecnico_Asignado || '' }}"
+            },
+            {
+              "id": "a8",
+              "name": "airtable_record_id",
+              "type": "string",
+              "value": "={{ $('Leer Memoria Airtable').item.json.id || '' }}"
+            },
+            {
+              "id": "a9",
+              "name": "tiene_memoria",
+              "type": "boolean",
+              "value": "={{ $('Leer Memoria Airtable').item.json.id ? true : false }}"
+            },
+            {
+              "id": "a10",
+              "name": "mensaje_count",
+              "type": "number",
+              "value": "={{ ($('Leer Memoria Airtable').item.json.Mensaje_Count || 0) + 1 }}"
+            },
+            {
+              "id": "a11",
+              "name": "contexto_previo",
+              "type": "string",
+              "value": "={{ $('Leer Memoria Airtable').item.json.Resumen_Consolidado || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1408,
+        0
+      ],
+      "id": "1d2bf825-c665-4db3-a6c5-34c9f65fe90b",
+      "name": "Parsear Clasificación"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cs1",
+              "name": "status",
+              "type": "string",
+              "value": "success"
+            },
+            {
+              "id": "cs2",
+              "name": "data",
+              "type": "object",
+              "value": "={{ { categoria: $json.categoria, tipo_consulta: $json.tipo_consulta, urgencia: $json.urgencia, resumen: $json.resumen, mensaje: $json.mensaje, session_id: $json.session_id, tecnico_asignado_previo: $json.tecnico_asignado_previo, airtable_record_id: $json.airtable_record_id, tiene_memoria: $json.tiene_memoria, mensaje_count: $json.mensaje_count, contexto_previo: $json.contexto_previo } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1680,
+        0
+      ],
+      "id": "cb5323c6-bf9d-4c7d-8d14-7677f53082ba",
+      "name": "Contrato de Salida (Cerebro)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Leer Memoria Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Memoria Airtable": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene historial previo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene historial previo?": {
+      "main": [
+        [
+          {
+            "node": "Set Contexto (recurrente)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Contexto (nuevo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Contexto (recurrente)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Contexto (nuevo)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Router": {
+      "main": [
+        [
+          {
+            "node": "Parsear Clasificación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Router",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Clasificación": {
+      "main": [
+        [
+          {
+            "node": "Contrato de Salida (Cerebro)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e526869c-2d4b-45e3-bc5b-20d80e93f2c7",
+  "meta": {
+    "instanceId": "5ead66365991f35d0fc28c40516bb6765dec7dcacd629bbab583ecd409271ae9"
+  },
+  "nodeGroups": [],
+  "id": "9VaYRtjfHrs3BvUe",
+  "tags": []
+}
