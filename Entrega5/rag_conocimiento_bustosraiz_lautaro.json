@@ -1,0 +1,539 @@
+{
+  "name": "rag_conocimiento_bustosraiz_lautaro",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "rag-chat-trigger-0001",
+      "name": "When chat message received",
+      "webhookId": "rag-electromundo-chat-0001"
+    },
+    {
+      "parameters": {
+        "model": "qwen2.5:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        0,
+        220
+      ],
+      "id": "rag-ollama-model-0001",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "PLACEHOLDER_OLLAMA_CREDENTIAL_ID",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "ROL:\nSos el Asistente de Conocimiento Organizacional de Electromundo. Tu única fuente de verdad es la base de conocimiento documental inyectada mediante la herramienta \"Consultar_Manual_Politicas\" (Vector Store Retrieve Tool). No tenés permitido usar conocimiento general ni inventar políticas de la empresa.\n\nREGLA DE ORO (anti-alucinación):\n- Antes de responder CUALQUIER pregunta sobre políticas, garantías, envíos, devoluciones o soporte de Electromundo, tenés que invocar la herramienta \"Consultar_Manual_Politicas\" con la consulta del usuario.\n- Si la herramienta no devuelve ningún fragmento relevante, o el fragmento recuperado no contiene la respuesta exacta a lo que se preguntó, respondé ÚNICAMENTE con la frase de escape: \"No sé: no figura en la documentación disponible.\" No completes con conocimiento propio, no infieras, no supongas.\n- Nunca mezcles información de dos fragmentos que hablen de cosas distintas (por ejemplo, no respondas sobre \"arrepentimiento de compra\" citando el fragmento de \"garantía por falla de fábrica\").\n\nCITACIÓN DE FUENTES (obligatorio):\n- Toda respuesta afirmativa tiene que citar la sección o el título del fragmento de donde salió el dato, entre paréntesis al final de la respuesta. Ejemplo: \"Sí, hay envío gratis en compras superiores a $100.000 (Sección 1.2 Envíos y Entregas).\"\n- Si la respuesta combina más de un fragmento, citá todas las secciones usadas.\n\nFORMATO DE RESPUESTA:\n- Respuestas breves, en tono cordial y directo, como si fueras un agente de atención al cliente.\n- No repitas la pregunta del usuario.\n- No agregues disclaimers extra más allá de la cita de fuente.\n\nEJEMPLOS DE COMPORTAMIENTO ESPERADO:\nUsuario: \"¿Me devuelven la plata si vino fallado?\"\n→ Herramienta devuelve el fragmento de Garantía de Fábrica.\n→ Respuesta: \"Sí, si es un defecto de fabricación tenés reembolso o cambio, evaluado primero en taller (Sección 2.2 Garantía de Fábrica).\"\n\nUsuario: \"¿Tienen garantía los auriculares?\"\n→ Herramienta no devuelve nada relevante sobre auriculares específicamente.\n→ Respuesta: \"No sé: no figura en la documentación disponible.\"\n",
+          "maxIterations": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        320,
+        0
+      ],
+      "id": "rag-agent-0001",
+      "name": "AI Agent RAG (Electromundo)"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "mensaje"
+            },
+            {
+              "name": "session_id"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        380
+      ],
+      "id": "rag-exec-trigger-0001",
+      "name": "Execute Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rc1",
+              "name": "status",
+              "type": "string",
+              "value": "success"
+            },
+            {
+              "id": "rc2",
+              "name": "data",
+              "type": "object",
+              "value": "={{ { session_id: (() => { try { return $('Preparar Entrada Telegram').item.json.session_id } catch(e) {} try { return $('Normalizar Entrada (Chat)').item.json.session_id } catch(e) {} try { return $('Normalizar Entrada (Workflow)').item.json.session_id } catch(e) {} return '' })(), respuesta_rag: $json.output, origen: (() => { try { return $('Preparar Entrada Telegram').item.json.origen } catch(e) {} try { return $('Normalizar Entrada (Chat)').item.json.origen } catch(e) {} try { return $('Normalizar Entrada (Workflow)').item.json.origen } catch(e) {} return 'unknown' })(), chat_id: (() => { try { return $('Preparar Entrada Telegram').item.json.chat_id } catch(e) { return '' } })() } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        0
+      ],
+      "id": "rag-contrato-0001",
+      "name": "Contrato de Salida (RAG)"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve",
+        "tableName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "document_chunks"
+        },
+        "options": {
+          "queryName": "match_document_chunks"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        320,
+        460
+      ],
+      "id": "rag-vectorstore-supabase-0001",
+      "name": "Vector Store Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "PLACEHOLDER_SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        320,
+        620
+      ],
+      "id": "rag-embeddings-0001",
+      "name": "Ollama Embeddings",
+      "credentials": {
+        "ollamaApi": {
+          "id": "PLACEHOLDER_OLLAMA_CREDENTIAL_ID",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Pendiente: 3 credenciales\n\n1. Supabase account (misma que usaste en la ingesta)\n2. OpenAI account (mismo modelo de embeddings que en la ingesta: text-embedding-3-small — TIENE que ser el mismo modelo en ambos workflows, si no las dimensiones no matchean)\n3. Correr primero `ingesta_conocimiento_bustosraiz_lautaro.json` (una sola vez) antes de probar este agente, si no la tabla document_chunks va a estar vacía.\n\nTop-K está en el nodo \"Vector Store Retrieve Tool\" (topK: 3).",
+        "height": 240,
+        "width": 420,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        560,
+        300
+      ],
+      "id": "rag-sticky-pendiente-0002",
+      "name": "Pendiente: credenciales"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "nc1",
+              "name": "chatInput",
+              "type": "string",
+              "value": "={{ $json.chatInput }}"
+            },
+            {
+              "id": "nc2",
+              "name": "session_id",
+              "type": "string",
+              "value": "={{ $json.sessionId || '' }}"
+            },
+            {
+              "id": "nc3",
+              "name": "origen",
+              "type": "string",
+              "value": "chat"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        40
+      ],
+      "id": "rag-normalizar-chat-0001",
+      "name": "Normalizar Entrada (Chat)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "nw1",
+              "name": "chatInput",
+              "type": "string",
+              "value": "={{ $json.mensaje }}"
+            },
+            {
+              "id": "nw2",
+              "name": "session_id",
+              "type": "string",
+              "value": "={{ $json.session_id || '' }}"
+            },
+            {
+              "id": "nw3",
+              "name": "origen",
+              "type": "string",
+              "value": "workflow"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        380
+      ],
+      "id": "rag-normalizar-workflow-0001",
+      "name": "Normalizar Entrada (Workflow)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "nt1",
+              "name": "chatInput",
+              "type": "string",
+              "value": "={{ $json.message.text }}"
+            },
+            {
+              "id": "nt2",
+              "name": "session_id",
+              "type": "string",
+              "value": "={{ 'telegram_' + $json.message.chat.id }}"
+            },
+            {
+              "id": "nt3",
+              "name": "chat_id",
+              "type": "string",
+              "value": "={{ $json.message.chat.id }}"
+            },
+            {
+              "id": "nt4",
+              "name": "origen",
+              "type": "string",
+              "value": "telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        220
+      ],
+      "id": "rag-normalizar-telegram-0001",
+      "name": "Preparar Entrada Telegram"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ift1",
+              "leftValue": "={{ $json.data.origen }}",
+              "rightValue": "telegram",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        860,
+        0
+      ],
+      "id": "rag-if-telegram-0001",
+      "name": "¿Origen es Telegram?"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.data.chat_id }}",
+        "text": "={{ $json.data.respuesta_rag }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1080,
+        -60
+      ],
+      "id": "rag-telegram-send-0001",
+      "name": "Telegram: Enviar Respuesta",
+      "credentials": {
+        "telegramApi": {
+          "id": "PLACEHOLDER_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ]
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -160,
+        220
+      ],
+      "id": "rag-telegram-trigger-0001",
+      "name": "Telegram Trigger",
+      "webhookId": "rag-telegram-webhook-0001",
+      "credentials": {
+        "telegramApi": {
+          "id": "PLACEHOLDER_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "Consultar_Manual_Politicas",
+        "description": "Busca información en el Manual de Políticas y FAQs de Electromundo (envíos, garantías, devoluciones, pagos, soporte técnico). Usar SIEMPRE antes de responder cualquier pregunta sobre políticas de la empresa.",
+        "topK": 3
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1,
+      "position": [
+        320,
+        340
+      ],
+      "id": "rag-retrieve-tool-0001",
+      "name": "Vector Store Retrieve Tool"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Entrada (Chat)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent RAG (Electromundo)",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Vector Store Retrieve Tool",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Entrada (Workflow)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent RAG (Electromundo)": {
+      "main": [
+        [
+          {
+            "node": "Contrato de Salida (RAG)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Supabase": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Retrieve Tool",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Entrada (Chat)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent RAG (Electromundo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Entrada (Workflow)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent RAG (Electromundo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Entrada Telegram": {
+      "main": [
+        [
+          {
+            "node": "AI Agent RAG (Electromundo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contrato de Salida (RAG)": {
+      "main": [
+        [
+          {
+            "node": "¿Origen es Telegram?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Origen es Telegram?": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Enviar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Ollama Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Vector Store Supabase",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Preparar Entrada Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Retrieve Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent RAG (Electromundo)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "r4g0-0001-0001-0001-000000000001",
+  "meta": {
+    "instanceId": "5ead66365991f35d0fc28c40516bb6765dec7dcacd629bbab583ecd409271ae9"
+  },
+  "nodeGroups": [],
+  "id": "RagConocimiento0001",
+  "tags": []
+}
