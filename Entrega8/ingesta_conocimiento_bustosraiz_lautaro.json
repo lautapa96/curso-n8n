@@ -1,0 +1,297 @@
+{
+  "name": "ingesta_conocimiento_bustosraiz_lautaro",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ing-manual-trigger-0001",
+      "name": "Ejecutar manualmente (1 sola vez)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloud.llamaindex.ai/api/v1/parsing/upload",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "ing-llamaparse-upload-0001",
+      "name": "LlamaParse: Subir y Parsear PDF",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PLACEHOLDER_LLAMACLOUD_HEADER_AUTH_ID",
+          "name": "LlamaCloud API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ],
+      "id": "ing-wait-0001",
+      "name": "Esperar parseo (15s)"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://api.cloud.llamaindex.ai/api/v1/parsing/job/' + $('LlamaParse: Subir y Parsear PDF').item.json.id + '/result/markdown' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "ing-llamaparse-result-0001",
+      "name": "LlamaParse: Obtener Markdown",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PLACEHOLDER_LLAMACLOUD_HEADER_AUTH_ID",
+          "name": "LlamaCloud API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chunkSize": 800,
+        "chunkOverlap": 100
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        180
+      ],
+      "id": "ing-splitter-0001",
+      "name": "Dividir en Chunks"
+    },
+    {
+      "parameters": {
+        "dataType": "json",
+        "jsonData": "={{ $json.markdown }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "ing-loader-0001",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        360
+      ],
+      "id": "ing-embeddings-0001",
+      "name": "Ollama Embeddings",
+      "credentials": {
+        "ollamaApi": {
+          "id": "PLACEHOLDER_OLLAMA_CREDENTIAL_ID",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "document_chunks"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1340,
+        0
+      ],
+      "id": "ing-vectorstore-supabase-0001",
+      "name": "Vector Store Supabase (Insert)",
+      "credentials": {
+        "supabaseApi": {
+          "id": "PLACEHOLDER_SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Ingesta — se corre UNA sola vez\n\n1. Ejecutá el SQL de `supabase_migration_document_chunks.sql` en tu proyecto de Supabase (SQL Editor) antes de correr este workflow.\n2. En \"LlamaParse: Subir y Parsear PDF\", adjuntá `Manual_Politicas_Electromundo.pdf` como binary data de entrada (podés agregar un nodo \"Read/Write File\" antes si lo subís desde disco, o un formulario).\n3. Reasigná las 3 credenciales placeholder (LlamaCloud, OpenAI, Supabase).\n4. Ejecutá el workflow completo una vez. Confirmá en Supabase → Table Editor → document_chunks que se insertaron filas.\n5. No hace falta volver a correrlo salvo que actualices el manual.",
+        "height": 260,
+        "width": 420,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        250
+      ],
+      "id": "ing-sticky-0001",
+      "name": "Instrucciones"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "fileSelector": "/data/Manual_Politicas_Electromundo.pdf",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        110,
+        0
+      ],
+      "id": "ing-readfile-0001",
+      "name": "Leer PDF desde Disco"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Ejecutar manualmente (1 sola vez)": {
+      "main": [
+        [
+          {
+            "node": "Leer PDF desde Disco",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LlamaParse: Subir y Parsear PDF": {
+      "main": [
+        [
+          {
+            "node": "Esperar parseo (15s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar parseo (15s)": {
+      "main": [
+        [
+          {
+            "node": "LlamaParse: Obtener Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LlamaParse: Obtener Markdown": {
+      "main": [
+        [
+          {
+            "node": "Vector Store Supabase (Insert)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dividir en Chunks": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Vector Store Supabase (Insert)",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Vector Store Supabase (Insert)",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer PDF desde Disco": {
+      "main": [
+        [
+          {
+            "node": "LlamaParse: Subir y Parsear PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ing0-0001-0001-0001-000000000001",
+  "meta": {
+    "instanceId": "5ead66365991f35d0fc28c40516bb6765dec7dcacd629bbab583ecd409271ae9"
+  },
+  "nodeGroups": [],
+  "id": "IngestaConocimiento0001",
+  "tags": []
+}

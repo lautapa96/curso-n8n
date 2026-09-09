@@ -1,0 +1,1355 @@
+{
+  "name": "rag_conocimiento_bustosraiz_lautaro",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "qwen3.5:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        180
+      ],
+      "id": "f507131c-0713-48a4-9c35-bd225a11d176",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "uraRwRiG7K8V5hFb",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "ROL:\nSos el Asistente de Conocimiento Organizacional de Electromundo. Tu única fuente de verdad es la base de conocimiento documental inyectada mediante la herramienta \"Consultar_Manual_Politicas\" (Vector Store Retrieve Tool). No tenés permitido usar conocimiento general ni inventar políticas de la empresa.\n\nREGLA DE ORO (anti-alucinación):\n- Antes de responder CUALQUIER pregunta sobre políticas, garantías, envíos, devoluciones o soporte de Electromundo, tenés que invocar la herramienta \"Consultar_Manual_Politicas\" con la consulta del usuario.\n- Si la herramienta no devuelve ningún fragmento relevante, o el fragmento recuperado no contiene la respuesta exacta a lo que se preguntó, respondé ÚNICAMENTE con la frase de escape: \"No sé: no figura en la documentación disponible.\" No completes con conocimiento propio, no infieras, no supongas.\n- Nunca mezcles información de dos fragmentos que hablen de cosas distintas (por ejemplo, no respondas sobre \"arrepentimiento de compra\" citando el fragmento de \"garantía por falla de fábrica\").\n\nCITACIÓN DE FUENTES (obligatorio):\n- Toda respuesta afirmativa tiene que citar la sección o el título del fragmento de donde salió el dato, entre paréntesis al final de la respuesta. Ejemplo: \"Sí, hay envío gratis en compras superiores a $100.000 (Sección 1.2 Envíos y Entregas).\"\n- Si la respuesta combina más de un fragmento, citá todas las secciones usadas.\n\nFORMATO DE RESPUESTA:\n- Respuestas breves, en tono cordial y directo, como si fueras un agente de atención al cliente.\n- No repitas la pregunta del usuario.\n- No agregues disclaimers extra más allá de la cita de fuente.\n\nEJEMPLOS DE COMPORTAMIENTO ESPERADO:\nUsuario: \"¿Me devuelven la plata si vino fallado?\"\n→ Herramienta devuelve el fragmento de Garantía de Fábrica.\n→ Respuesta: \"Sí, si es un defecto de fabricación tenés reembolso o cambio, evaluado primero en taller (Sección 2.2 Garantía de Fábrica).\"\n\nUsuario: \"¿Tienen garantía los auriculares?\"\n→ Herramienta no devuelve nada relevante sobre auriculares específicamente.\n→ Respuesta: \"No sé: no figura en la documentación disponible.\"\n\n\nCONTENCIÓN FINANCIERA PARA RESPUESTAS DE VOZ (regla de negocio obligatoria):\n- Si el campo de contexto indica que el origen del mensaje es \"telegram_voz\" (el usuario envió una nota de voz), tu respuesta escrita debe limitarse imperativamente a un máximo de 200 caracteres, incluyendo la cita de fuente. Sé directo y priorizá el dato concreto por sobre las formalidades.\n- Para el resto de los orígenes podés mantener el formato breve habitual, sin el límite estricto de 200 caracteres.\n- Nunca superes los 200 caracteres en una respuesta de voz: cada carácter de más se cobra en la API de síntesis (ElevenLabs).",
+          "maxIterations": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1320,
+        -20
+      ],
+      "id": "2332de33-5de5-4178-b35a-c57fa255c581",
+      "name": "AI Agent RAG (Electromundo)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rc1",
+              "name": "status",
+              "type": "string",
+              "value": "success"
+            },
+            {
+              "id": "rc2",
+              "name": "data",
+              "type": "object",
+              "value": "={{ { session_id: (() => { try { return $('Preparar Entrada Telegram').item.json.session_id } catch(e) {} try { return $('Preparar Entrada Telegram (Voz)').item.json.session_id } catch(e) {} try { return $('Normalizar Entrada (Chat)').item.json.session_id } catch(e) {} try { return $('Normalizar Entrada (Workflow)').item.json.session_id } catch(e) {} return '' })(), respuesta_rag: $('AI Agent RAG (Electromundo)').item.json.output, origen: (() => { try { return $('Preparar Entrada Telegram').item.json.origen } catch(e) {} try { return $('Preparar Entrada Telegram (Voz)').item.json.origen } catch(e) {} try { return $('Normalizar Entrada (Chat)').item.json.origen } catch(e) {} try { return $('Normalizar Entrada (Workflow)').item.json.origen } catch(e) {} return 'unknown' })(), chat_id: (() => { try { return $('Preparar Entrada Telegram').item.json.chat_id } catch(e) {} try { return $('Preparar Entrada Telegram (Voz)').item.json.chat_id } catch(e) { return '' } })() } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3560,
+        -20
+      ],
+      "id": "5d92322a-3aec-4eef-998f-c6d08002532d",
+      "name": "Contrato de Salida (RAG)"
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "document_chunks"
+        },
+        "options": {
+          "queryName": "match_document_chunks"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1320,
+        480
+      ],
+      "id": "1ac92488-18c5-4150-935f-842e2478c34c",
+      "name": "Vector Store Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ollDcVpW9537XpYw",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        620
+      ],
+      "id": "88ce6302-46eb-44c9-8f82-cdcab33cf0ca",
+      "name": "Ollama Embeddings",
+      "credentials": {
+        "ollamaApi": {
+          "id": "uraRwRiG7K8V5hFb",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "nt1",
+              "name": "chatInput",
+              "type": "string",
+              "value": "={{ $json.message.text }}"
+            },
+            {
+              "id": "nt2",
+              "name": "session_id",
+              "type": "string",
+              "value": "={{ 'telegram_' + $json.message.chat.id }}"
+            },
+            {
+              "id": "nt3",
+              "name": "chat_id",
+              "type": "string",
+              "value": "={{ $json.message.chat.id }}"
+            },
+            {
+              "id": "nt4",
+              "name": "origen",
+              "type": "string",
+              "value": "telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        100,
+        -20
+      ],
+      "id": "82f2ae0c-3316-47ce-983f-7edb0f055f1a",
+      "name": "Preparar Entrada Telegram"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.data.chat_id }}",
+        "text": "={{ $json.data.respuesta_rag }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4040,
+        -160
+      ],
+      "id": "1392e21b-5651-41c6-819b-2f4b71ced469",
+      "name": "Telegram: Enviar Respuesta",
+      "webhookId": "92487b23-fda9-4954-a240-a6e52e7273e0",
+      "credentials": {
+        "telegramApi": {
+          "id": "CbcAFCQmYlsOO7QE",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -380,
+        140
+      ],
+      "id": "d1306b43-0900-4432-8c29-7c37b9be0474",
+      "name": "Telegram Trigger",
+      "webhookId": "rag-telegram-webhook-0001",
+      "credentials": {
+        "telegramApi": {
+          "id": "CbcAFCQmYlsOO7QE",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "Consultar_Manual_Politicas",
+        "description": "Busca información en el Manual de Políticas y FAQs de Electromundo (envíos, garantías, devoluciones, pagos, soporte técnico). Usar SIEMPRE antes de responder cualquier pregunta sobre políticas de la empresa.",
+        "topK": 3
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        340
+      ],
+      "id": "f55c9787-ed9e-4d85-b501-f381bb8bdaea",
+      "name": "Vector Store Retrieve Tool"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "voz1",
+              "leftValue": "={{ $json.message.voice?.file_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -140,
+        140
+      ],
+      "id": "3eb83225-b5df-4d53-b9a6-ad98f21ab09f",
+      "name": "¿Es Nota de Voz?"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        100,
+        220
+      ],
+      "id": "a3aca4f4-8dce-4be3-87ea-2ed4fc3ea7c3",
+      "name": "Telegram: Descargar Nota de Voz",
+      "webhookId": "588479b4-0149-4f92-b29b-bbfa99930f10",
+      "credentials": {
+        "telegramApi": {
+          "id": "CbcAFCQmYlsOO7QE",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "trv1",
+              "leftValue": "={{ ($json.text || '').trim().length }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        820,
+        220
+      ],
+      "id": "405f4d15-8ac4-45d2-a019-2ede4089ca9a",
+      "name": "¿Transcripción Válida?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "pv1",
+              "name": "chatInput",
+              "type": "string",
+              "value": "={{ $json.text }}"
+            },
+            {
+              "id": "pv2",
+              "name": "session_id",
+              "type": "string",
+              "value": "={{ 'telegram_' + $('Telegram Trigger').item.json.message.chat.id }}"
+            },
+            {
+              "id": "pv3",
+              "name": "chat_id",
+              "type": "string",
+              "value": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+            },
+            {
+              "id": "pv4",
+              "name": "origen",
+              "type": "string",
+              "value": "telegram_voz"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1060,
+        160
+      ],
+      "id": "2f7cba60-62d0-442c-8046-3073a95ae341",
+      "name": "Preparar Entrada Telegram (Voz)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "🎙️ Lo siento, no logré escuchar tu audio con claridad. Por favor, intentá grabarlo nuevamente en un entorno con menos ruido o escribí tu consulta.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1060,
+        320
+      ],
+      "id": "23e9ac3f-3f1a-4403-b6aa-f134c73385a2",
+      "name": "Telegram: Audio No Entendido",
+      "webhookId": "48599437-a107-4991-8dd3-ec88aea4f952",
+      "credentials": {
+        "telegramApi": {
+          "id": "CbcAFCQmYlsOO7QE",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.elevenlabs.io/v1/text-to-speech/CwhRBWXzGAHq8TQ4Fs17",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.data.respuesta_rag, model_id: \"eleven_multilingual_v2\", voice_settings: { stability: 0.55, similarity_boost: 0.75 } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4040,
+        60
+      ],
+      "id": "e4f47069-3e2b-4e84-8280-c44f8625270c",
+      "name": "ElevenLabs: Sintetizar Voz",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IlEXe8bPWG07zEFr",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAudio",
+        "chatId": "={{ $('Contrato de Salida (RAG)').item.json.data.chat_id }}",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4280,
+        60
+      ],
+      "id": "93febd66-123f-4aad-80b8-59c08bb2dace",
+      "name": "Telegram: Enviar Nota de Voz",
+      "webhookId": "6add8e18-e84b-4b7d-a7f6-59e1b8c05cb7",
+      "credentials": {
+        "telegramApi": {
+          "id": "CbcAFCQmYlsOO7QE",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compliance: el audio de voz del cliente (input) y el audio sintetizado (output)\n// solo existen en la memoria volátil de esta ejecución. Una vez enviada la nota de\n// voz de respuesta, se descarta explícitamente el binario del item para no dejarlo\n// flotando en el resto del flujo ni en logs de nodos posteriores.\nconst items = $input.all();\nfor (const item of items) {\n  item.binary = {};\n}\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4520,
+        60
+      ],
+      "id": "e1c75fa7-7ace-4852-917c-5e2c38edda33",
+      "name": "Compliance: Destruir Binario"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "sw1",
+                    "leftValue": "={{ $json.data.origen }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram Texto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "sw2",
+                    "leftValue": "={{ $json.data.origen }}",
+                    "rightValue": "telegram_voz",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram Voz"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Otros (Chat/Workflow)"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        3800,
+        -20
+      ],
+      "id": "af47cac0-d61c-4810-9207-97b621921b50",
+      "name": "Router de Salida (Origen)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Le damos nombre y extensión .ogg al binario descargado de Telegram,\n// tal como lo hizo la profe: sin esto, Groq/OpenAI no siempre reconocen\n// el formato del audio de las notas de voz.\nfor (const item of $input.all()) {\n  if (item.binary && item.binary.data) {\n    item.binary.data.fileName = \"nota_de_voz.ogg\";\n    item.binary.data.fileExtension = \"ogg\";\n  }\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        340,
+        220
+      ],
+      "id": "4a77a97a-5228-4f7e-90e3-53bbd1e441e0",
+      "name": "Code: Renombrar Audio (.ogg)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-large-v3-turbo"
+            },
+            {
+              "name": "language",
+              "value": "es"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        220
+      ],
+      "id": "499edd7e-4576-44d4-bc09-b0a0e333b045",
+      "name": "HTTP Request: Whisper STT (Groq)",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "FDJT0fN6UMvjNKyv",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "load",
+        "tableName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "document_chunks"
+        },
+        "prompt": "={{ (() => { try { return $('Preparar Entrada Telegram').item.json.chatInput } catch(e) {} try { return $('Preparar Entrada Telegram (Voz)').item.json.chatInput } catch(e) {} return '' })() }}",
+        "topK": 4,
+        "options": {
+          "queryName": "match_document_chunks"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1600,
+        -20
+      ],
+      "id": "judge-recuperar-ctx-0001",
+      "name": "Recuperar Contexto (para Juez)",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ollDcVpW9537XpYw",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Junta los chunks recuperados en un solo string para el Juez,\n// y arma el paquete de entrada del SUPERVISOR_Judge.\n// Defensivo: el nodo de Supabase puede devolver el texto del chunk bajo\n// distintos nombres según la versión (pageContent, document.pageContent,\n// text, content) — probamos todas las variantes conocidas.\nfunction extraerTexto(j) {\n  if (!j) return '';\n  return (\n    j.pageContent ||\n    j.text ||\n    j.content ||\n    (j.document && (j.document.pageContent || j.document.text)) ||\n    (j.metadata && j.metadata.pageContent) ||\n    ''\n  );\n}\n\nconst items = $input.all();\nconst contexto = items\n  .map(it => extraerTexto(it.json))\n  .filter(Boolean)\n  .join('\\n---\\n');\n\nconst chatInput = (() => {\n  try { return $('Preparar Entrada Telegram').item.json.chatInput } catch(e) {}\n  try { return $('Preparar Entrada Telegram (Voz)').item.json.chatInput } catch(e) {}\n  return '';\n})();\nconst session_id = (() => {\n  try { return $('Preparar Entrada Telegram').item.json.session_id } catch(e) {}\n  try { return $('Preparar Entrada Telegram (Voz)').item.json.session_id } catch(e) {}\n  return '';\n})();\nconst origen = (() => {\n  try { return $('Preparar Entrada Telegram').item.json.origen } catch(e) {}\n  try { return $('Preparar Entrada Telegram (Voz)').item.json.origen } catch(e) {}\n  return 'unknown';\n})();\nconst chat_id = (() => {\n  try { return $('Preparar Entrada Telegram').item.json.chat_id } catch(e) {}\n  try { return $('Preparar Entrada Telegram (Voz)').item.json.chat_id } catch(e) {}\n  return '';\n})();\n\n// Log de diagnóstico: si esto sigue vacío, mirá la consola del navegador\n// (F12) para ver qué forma tienen realmente los items de \"Recuperar Contexto\".\nif (!contexto) {\n  console.log('[QA] contexto vacío. Primer item crudo:', JSON.stringify(items[0] && items[0].json));\n}\n\nreturn [{\n  json: {\n    pregunta: chatInput,\n    contexto_recuperado: contexto,\n    respuesta_agente: $('AI Agent RAG (Electromundo)').item.json.output,\n    session_id, origen, chat_id,\n    contador_reintentos: 0\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        -20
+      ],
+      "id": "judge-formatear-ctx-0001",
+      "name": "Formatear Contexto (Código)"
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "SupervisorJudge0001",
+          "cachedResultName": "SUPERVISOR_Judge"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pregunta": "={{ $json.pregunta }}",
+            "contexto_recuperado": "={{ $json.contexto_recuperado }}",
+            "respuesta_agente": "={{ $json.respuesta_agente }}",
+            "session_id": "={{ $json.session_id }}",
+            "origen": "={{ $json.origen }}",
+            "chat_id": "={{ $json.chat_id }}",
+            "contador_reintentos": "={{ $json.contador_reintentos }}"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2080,
+        -20
+      ],
+      "id": "judge-exec-subworkflow-0001",
+      "name": "Execute Workflow: SUPERVISOR_Judge"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "vd1",
+                    "leftValue": "={{ $json.estado_veredicto }}",
+                    "rightValue": "ACEPTADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Aceptado"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "vd2",
+                    "leftValue": "={{ $json.estado_veredicto }}",
+                    "rightValue": "CORREGIR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Corregir (Self-Healing)"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "vd3",
+                    "leftValue": "={{ $json.estado_veredicto }}",
+                    "rightValue": "RECHAZADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Rechazado (Escalar HITL)"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Sin veredicto (fail-safe)"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2320,
+        -20
+      ],
+      "id": "judge-switch-veredicto-0001",
+      "name": "Switch: Veredicto del Juez"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "PLACEHOLDER_AUDITORIA_BASE_ID",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "QA_Auditoria",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Session_ID": "={{ $json.session_id }}",
+            "Pregunta": "={{ $json.pregunta }}",
+            "Respuesta": "={{ $json.respuesta_agente }}",
+            "Exactitud_Factual": "={{ $json.exactitud_factual }}",
+            "Veredicto": "={{ $json.estado_veredicto }}",
+            "Reintentos": "={{ $json.contador_reintentos }}",
+            "Timestamp": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2560,
+        -220
+      ],
+      "id": "judge-log-aceptado-0001",
+      "name": "Log: Ejecución Exitosa (Auditoría)",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "mcN4wZZFXZj1ACW7",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rt1",
+              "name": "contador_reintentos",
+              "type": "number",
+              "value": "={{ ($json.contador_reintentos || 0) + 1 }}"
+            },
+            {
+              "id": "rt2",
+              "name": "critica",
+              "type": "string",
+              "value": "={{ 'Tu respuesta anterior obtuvo una exactitud factual de ' + $json.exactitud_factual + '/5 según el supervisor de calidad. Corregí citando exactamente la sección correcta del contexto recuperado y no mezcles fragmentos de temas distintos.' }}"
+            },
+            {
+              "id": "rt3",
+              "name": "chatInput",
+              "type": "string",
+              "value": "={{ $json.pregunta + '\\n\\n[CRÍTICA DEL SUPERVISOR — corregí tu respuesta anterior]: ' + $json.critica }}"
+            },
+            {
+              "id": "rt4",
+              "name": "session_id",
+              "type": "string",
+              "value": "={{ $json.session_id }}"
+            },
+            {
+              "id": "rt5",
+              "name": "chat_id",
+              "type": "string",
+              "value": "={{ $json.chat_id }}"
+            },
+            {
+              "id": "rt6",
+              "name": "origen",
+              "type": "string",
+              "value": "={{ $json.origen }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2560,
+        -20
+      ],
+      "id": "judge-preparar-reintento-0001",
+      "name": "Preparar Reintento (Contador)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "rti1",
+              "leftValue": "={{ $json.contador_reintentos }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2800,
+        -20
+      ],
+      "id": "judge-if-reintentos-0001",
+      "name": "¿Reintentos Disponibles? (<2)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "al1",
+              "name": "texto_alerta",
+              "type": "string",
+              "value": "={{ '⚠️ *Escalado HITL — Electromundo QA*\\n*Pregunta:* ' + $json.pregunta + '\\n*Respuesta del agente:* ' + $json.respuesta_agente + '\\n*Exactitud factual (Juez):* ' + $json.exactitud_factual + '/5\\n*Reintentos previos:* ' + ($json.contador_reintentos || 0) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2560,
+        220
+      ],
+      "id": "judge-preparar-alerta-0001",
+      "name": "Preparar Alerta HITL"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "PLACEHOLDER_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "text": "={{ $json.texto_alerta }}",
+        "otherOptions": {
+          "blocksUi": "={{ JSON.stringify({ blocks: [ { type: 'section', text: { type: 'mrkdwn', text: $json.texto_alerta } }, { type: 'actions', elements: [ { type: 'button', text: { type: 'plain_text', text: 'Aprobar' }, style: 'primary', action_id: 'qa_aprobar' }, { type: 'button', text: { type: 'plain_text', text: 'Editar' }, action_id: 'qa_editar' } ] } ] }) }}"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2800,
+        220
+      ],
+      "id": "judge-slack-alerta-0001",
+      "name": "Slack: Alerta HITL (Aprobar/Editar)",
+      "credentials": {
+        "slackApi": {
+          "id": "PLACEHOLDER_SLACK_CREDENTIAL_ID",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3040,
+        220
+      ],
+      "id": "judge-wait-webhook-0001",
+      "name": "Wait: Espera Aprobación Humana"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "PLACEHOLDER_AUDITORIA_BASE_ID",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "QA_Auditoria",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Session_ID": "={{ $('Preparar Alerta HITL').item.json.session_id }}",
+            "Pregunta": "={{ $('Preparar Alerta HITL').item.json.pregunta }}",
+            "Respuesta": "={{ $('Preparar Alerta HITL').item.json.respuesta_agente }}",
+            "Exactitud_Factual": "={{ $('Preparar Alerta HITL').item.json.exactitud_factual }}",
+            "Veredicto": "RECHAZADO",
+            "Decision_Humana": "={{ $json.body ? $json.body.actions[0].action_id : 'sin_respuesta' }}",
+            "Timestamp": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        3280,
+        220
+      ],
+      "id": "judge-log-escalado-0001",
+      "name": "Log: Escalado a Humano (Auditoría)",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "mcN4wZZFXZj1ACW7",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Checkpoint Módulo 8 — Capa QA (AI-as-a-Judge)\n\nDespués de cada respuesta del Agente RAG: se recupera el contexto real usado (consulta directa a Supabase, no la del tool-calling interno del agente) y se manda junto con la pregunta y la respuesta al sub-workflow SUPERVISOR_Judge.\n\n**3 rutas del Switch:**\n- ACEPTADO (4-5) → log de auditoría + sigue al contrato de salida de siempre.\n- CORREGIR (2-3) → self-healing: se reintenta contra el mismo Agente con la crítica del Juez, máx. 2 veces (contador). Si se agotan los reintentos, escala como RECHAZADO.\n- RECHAZADO (1) → alerta interactiva a Slack (Aprobar/Editar) + Wait for Webhook, pausa hasta que un humano responda.\n\n**Pendiente antes de correr en producción:**\n1. Reemplazar SupervisorJudge0001 por el ID real del sub-workflow una vez importado.\n2. Base/tabla de Airtable \"QA_Auditoria\" (reemplazar PLACEHOLDER_AUDITORIA_BASE_ID).\n3. App de Slack con botones interactivos + credencial (reemplazar los 2 placeholders de Slack).\n4. Credencial Groq Bearer Auth en el sub-workflow SUPERVISOR_Judge.",
+        "height": 420,
+        "width": 480,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        460
+      ],
+      "id": "qa-sticky-doc-0001",
+      "name": "Documentación QA"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent RAG (Electromundo)",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Vector Store Retrieve Tool",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent RAG (Electromundo)": {
+      "main": [
+        [
+          {
+            "node": "Recuperar Contexto (para Juez)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Supabase": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Retrieve Tool",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Entrada Telegram": {
+      "main": [
+        [
+          {
+            "node": "AI Agent RAG (Electromundo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contrato de Salida (RAG)": {
+      "main": [
+        [
+          {
+            "node": "Router de Salida (Origen)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Vector Store Supabase",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Recuperar Contexto (para Juez)",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "¿Es Nota de Voz?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Retrieve Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent RAG (Electromundo)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es Nota de Voz?": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Descargar Nota de Voz",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Entrada Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: Descargar Nota de Voz": {
+      "main": [
+        [
+          {
+            "node": "Code: Renombrar Audio (.ogg)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Transcripción Válida?": {
+      "main": [
+        [
+          {
+            "node": "Preparar Entrada Telegram (Voz)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: Audio No Entendido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Entrada Telegram (Voz)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent RAG (Electromundo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router de Salida (Origen)": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Enviar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ElevenLabs: Sintetizar Voz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ElevenLabs: Sintetizar Voz": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Enviar Nota de Voz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: Enviar Nota de Voz": {
+      "main": [
+        [
+          {
+            "node": "Compliance: Destruir Binario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Renombrar Audio (.ogg)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request: Whisper STT (Groq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request: Whisper STT (Groq)": {
+      "main": [
+        [
+          {
+            "node": "¿Transcripción Válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recuperar Contexto (para Juez)": {
+      "main": [
+        [
+          {
+            "node": "Formatear Contexto (Código)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Contexto (Código)": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow: SUPERVISOR_Judge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow: SUPERVISOR_Judge": {
+      "main": [
+        [
+          {
+            "node": "Switch: Veredicto del Juez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Veredicto del Juez": {
+      "main": [
+        [
+          {
+            "node": "Log: Ejecución Exitosa (Auditoría)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Reintento (Contador)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Alerta HITL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Log: Ejecución Exitosa (Auditoría)": {
+      "main": [
+        [
+          {
+            "node": "Contrato de Salida (RAG)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Reintento (Contador)": {
+      "main": [
+        [
+          {
+            "node": "¿Reintentos Disponibles? (<2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Reintentos Disponibles? (<2)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent RAG (Electromundo)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Alerta HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Alerta HITL": {
+      "main": [
+        [
+          {
+            "node": "Slack: Alerta HITL (Aprobar/Editar)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack: Alerta HITL (Aprobar/Editar)": {
+      "main": [
+        [
+          {
+            "node": "Wait: Espera Aprobación Humana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait: Espera Aprobación Humana": {
+      "main": [
+        [
+          {
+            "node": "Log: Escalado a Humano (Auditoría)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log: Escalado a Humano (Auditoría)": {
+      "main": [
+        [
+          {
+            "node": "Contrato de Salida (RAG)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "r4g0-tp8-qa-0001-000000000005",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5ead66365991f35d0fc28c40516bb6765dec7dcacd629bbab583ecd409271ae9"
+  },
+  "nodeGroups": [],
+  "id": "Oii1i2fPV8UH9NTI",
+  "tags": []
+}
