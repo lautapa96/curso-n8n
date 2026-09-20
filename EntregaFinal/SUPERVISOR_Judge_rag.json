@@ -1,0 +1,119 @@
+{
+  "name": "SUPERVISOR_Judge_rag",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "pregunta"
+            },
+            {
+              "name": "contexto_recuperado"
+            },
+            {
+              "name": "respuesta_agente"
+            },
+            {
+              "name": "session_id"
+            },
+            {
+              "name": "origen"
+            },
+            {
+              "name": "chat_id"
+            },
+            {
+              "name": "contador_reintentos",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ee635696-8e7c-4c7f-bebe-4eebd84a7748",
+      "name": "Execute Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: \"openai/gpt-oss-120b\",\n  messages: [\n    { role: \"system\", content: `ROL:\nSos el Juez de Calidad (AI-as-a-Judge) que supervisa las respuestas del Agente RAG de Electromundo. Tu única función es auditar la respuesta ya generada; nunca la generás, corregís ni completás vos mismo.\n\nINSUMOS QUE RECIBÍS (JSON):\n{ \"pregunta\": string, \"contexto_recuperado\": string, \"respuesta_agente\": string }\n\nCRITERIO DE EVALUACIÓN — Exactitud Factual (escala 1 a 5):\n- 5: la respuesta está sustentada palabra por palabra por el contexto_recuperado, cita la sección correcta y no agrega ningún dato que no esté en el contexto.\n- 4: la respuesta es correcta y está sustentada, pero la cita de sección es imprecisa o falta una aclaración menor.\n- 3: la respuesta es parcialmente correcta pero mezcla información de dos fragmentos distintos, o la cita no corresponde al fragmento correcto.\n- 2: la respuesta contradice el contexto_recuperado en al menos un dato relevante (número, plazo o condición).\n- 1: la respuesta inventa una política que no existe en el contexto_recuperado, o responde con seguridad sin tener contexto de respaldo.\n\nREGLA ESPECIAL: si contexto_recuperado está vacío y la respuesta no es la frase de escape \"No sé: no figura en la documentación disponible.\", la exactitud_factual nunca puede ser mayor a 2.\n\nMAPEO OBLIGATORIO exactitud_factual → estado_veredicto (nunca lo contradigas):\n- 4 o 5 → \"ACEPTADO\"\n- 2 o 3 → \"CORREGIR\"\n- 1 → \"RECHAZADO\"\n\nFORMATO DE SALIDA OBLIGATORIO:\nRespondé ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, con exactamente estos dos campos:\n{ \"exactitud_factual\": <entero 1-5>, \"estado_veredicto\": \"ACEPTADO\" | \"CORREGIR\" | \"RECHAZADO\" }` },\n    { role: \"user\", content: JSON.stringify({ pregunta: $json.pregunta, contexto_recuperado: $json.contexto_recuperado, respuesta_agente: $json.respuesta_agente }) }\n  ],\n  response_format: {\n    type: \"json_schema\",\n    json_schema: {\n      name: \"veredicto_juez\",\n      schema: {\n        type: \"object\",\n        properties: {\n          exactitud_factual: { type: \"integer\", minimum: 1, maximum: 5 },\n          estado_veredicto: { type: \"string\", enum: [\"ACEPTADO\", \"CORREGIR\", \"RECHAZADO\"] }\n        },\n        required: [\"exactitud_factual\", \"estado_veredicto\"],\n        additionalProperties: false\n      }\n    }\n  },\n  temperature: 0\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        288,
+        0
+      ],
+      "id": "4f407b0a-6317-41e5-ba5a-7196d4e326f6",
+      "name": "Juez: Evaluar Respuesta (Groq)",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "FDJT0fN6UMvjNKyv",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parseo defensivo del veredicto del Juez.\n// Si el modelo devolviera texto libre o un estado_veredicto que no matchea\n// el schema, forzamos RECHAZADO en vez de dejar que el Switch se rompa\n// (evita exactamente el error \"Juez con respuesta en texto libre\" que\n// advierte la unidad).\nconst input = $input.first().json;\nlet veredicto = { exactitud_factual: 1, estado_veredicto: \"RECHAZADO\" };\n\ntry {\n  const raw = input.choices[0].message.content;\n  const parsed = JSON.parse(raw);\n  const estadosValidos = [\"ACEPTADO\", \"CORREGIR\", \"RECHAZADO\"];\n  const exact = Number(parsed.exactitud_factual);\n  if (\n    Number.isInteger(exact) && exact >= 1 && exact <= 5 &&\n    estadosValidos.includes(parsed.estado_veredicto)\n  ) {\n    veredicto = { exactitud_factual: exact, estado_veredicto: parsed.estado_veredicto };\n  }\n} catch (e) {\n  // parseo falló -> se mantiene el default RECHAZADO (fail-safe, nunca ACEPTADO por error)\n}\n\nreturn [{\n  json: {\n    exactitud_factual: veredicto.exactitud_factual,\n    estado_veredicto: veredicto.estado_veredicto,\n    pregunta: $('Execute Workflow Trigger').item.json.pregunta,\n    contexto_recuperado: $('Execute Workflow Trigger').item.json.contexto_recuperado,\n    respuesta_agente: $('Execute Workflow Trigger').item.json.respuesta_agente,\n    session_id: $('Execute Workflow Trigger').item.json.session_id,\n    origen: $('Execute Workflow Trigger').item.json.origen,\n    chat_id: $('Execute Workflow Trigger').item.json.chat_id,\n    contador_reintentos: $('Execute Workflow Trigger').item.json.contador_reintentos || 0\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "80ad7fd3-07f0-4861-bea5-192f6617c8b6",
+      "name": "Parsear Veredicto (Fail-Safe)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Juez: Evaluar Respuesta (Groq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juez: Evaluar Respuesta (Groq)": {
+      "main": [
+        [
+          {
+            "node": "Parsear Veredicto (Fail-Safe)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4e59047b-504a-4e1c-938c-338df34440b5",
+  "meta": {
+    "instanceId": "5ead66365991f35d0fc28c40516bb6765dec7dcacd629bbab583ecd409271ae9"
+  },
+  "nodeGroups": [],
+  "id": "33JewkQAwD0nzbvw",
+  "tags": []
+}
